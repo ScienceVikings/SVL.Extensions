@@ -1,0 +1,67 @@
+name: Deploy
+
+on:
+  push:
+
+jobs:
+  build-and-deploy-package:
+    name: "Build and Deploy Package"
+    runs-on: ubuntu-latest
+    
+    steps:
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.7
+        with:
+          versionSpec: '5.x'
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Determine Version
+        id: version
+        uses: gittools/actions/gitversion/execute@v0.9.7
+
+      - name: Test
+        shell: bash
+        run: |
+          dotnet test Extensions.sln
+
+      - name: Build Release Package
+        shell: bash
+        run: |
+          
+          mkdir -p packages
+          dotnet pack --configuration Release -o packages /p:VERSION="${{ steps.version.outputs.semVer }}"
+
+          dotnet nuget push "packages/SVL.Extensions.Random.${{ steps.version.outputs.semVer }}.nupkg" \
+            --api-key "${{ secrets.GITHUB_TOKEN }}" \
+            --source "https://nuget.pkg.github.com/ScienceVikings/index.json" \
+            --skip-duplicate
+
+          dotnet nuget push "packages/SVL.Extensions.Random.${{ steps.version.outputs.semVer }}.nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source "https://api.nuget.org/v3/index.json" \
+            --skip-duplicate
+
+          dotnet nuget push "packages/SVL.Extensions.String.${{ steps.version.outputs.semVer }}.nupkg" \
+            --api-key "${{ secrets.GITHUB_TOKEN }}" \
+            --source "https://nuget.pkg.github.com/ScienceVikings/index.json" \
+            --skip-duplicate
+
+          dotnet nuget push "packages/SVL.Extensions.String.${{ steps.version.outputs.semVer }}.nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source "https://api.nuget.org/v3/index.json" \
+            --skip-duplicate
+
+          dotnet nuget push "packages/SVL.Extensions.${{ steps.version.outputs.semVer }}.nupkg" \
+            --api-key "${{ secrets.GITHUB_TOKEN }}" \
+            --source "https://nuget.pkg.github.com/ScienceVikings/index.json" \
+            --skip-duplicate
+
+          dotnet nuget push "packages/SVL.Extensions.${{ steps.version.outputs.semVer }}.nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source "https://api.nuget.org/v3/index.json" \
+            --skip-duplicate
